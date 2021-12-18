@@ -1,0 +1,6 @@
+-----Reconciliation Strategy Details-----
+The count of the initial 'airports-extended.csv' file is : 12668
+The count of the nitial extFiltered dataframe (aka # of airports) is : 424
+The count of the initial 'zone.csv' file is : 7148
+The number of regions where airports are found is : 10
+The number of airports exported is : 6810
