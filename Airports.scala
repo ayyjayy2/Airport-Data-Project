@@ -84,7 +84,7 @@ object Airports {
       filter(extendedDf("Type") === "airport" && extendedDf("Tz_database") =!= "none").
       select("Name", "City", "Tz_database", "Type")
 
-    //group by the timezoneand count total num of airports in that timezone
+    //group by the timezone and count total num of airports in that timezone
     val numOfAirportsByTZDF = extFiltered.
         groupBy("Tz_database").
         agg(count("Tz_database").
@@ -93,7 +93,7 @@ object Airports {
         sort("Time Zone")
 
     println("displaying the numOfAirportsByTZDF dataframe : ")
-    //numOfAirportsByTZDF.show(20)
+    numOfAirportsByTZDF.show(15)
 
 
     //********DISPLAY DISTINCT REGIONS********
@@ -101,6 +101,7 @@ object Airports {
       select(split(col("Time Zone"), "/").
       getItem(0).as("Region")).
       sort("Region").distinct()
+    println("Display distinct regions")
     regionDF.show()
 
     //******** DISPLAY AIRPORT NAMES WITH THEIR CORRESPONDING REGIONS********
@@ -108,7 +109,12 @@ object Airports {
       select(col("Name"), col("City"), col("Tz_database").as("Time Zone"), split(col("Tz_database"), "/").
         getItem(0).as("Region")).
       sort("Region")
-    airportRegionsDf.show(25)
+    println("display airport names with corresponding regions")
+    airportRegionsDf.show(15)
+
+    //export airportRegionsDF
+    //****EXPORT #1******
+    airportRegionsDf.write.mode("overwrite").partitionBy("Region").csv("data/airportdata")
 
     //********GET AIRPORT NAMES BY COUNTRY***********
     val airportByCountryDF = extendedDf.
@@ -116,7 +122,7 @@ object Airports {
       select("Country", "Name")
 
     println("display airports per country")
-    airportByCountryDF.show(50,false)
+    airportByCountryDF.show(15,false)
 
     //count of airports per country
 
@@ -127,25 +133,23 @@ object Airports {
       csv("data/zone.csv")
 
     //join for combining zoneDf and airportRegionsDf
+    //same output as Meet's 'exportDF'
     val allDf = zoneDf
       .join(airportRegionsDf, airportRegionsDf("Time Zone") === zoneDf("Zone_name"))
-      .select(airportRegionsDf("Name").as("Airport Name"), airportRegionsDf("Time Zone"), airportRegionsDf("City"), zoneDf("country_code").as("Country Code"), split(col("Time Zone"), "/").
-        getItem(0).as("Region"))
+      .select(airportRegionsDf("Name").as("Airport Name"), airportRegionsDf("Time Zone"),
+        airportRegionsDf("City"), zoneDf("country_code").as("Country Code"),
+        split(col("Time Zone"), "/").getItem(0).as("Region"))
+    // JOIN FOR extFiltered DF and zoneDf
+//    val allDf = zoneDf
+//      .join(extFiltered, extFiltered("Tz_database") === zoneDf("Zone_name"))
+//      .select(zoneDf("country_code").as("Country Code"), extFiltered("Name").as("Airport Name"))
+//      .orderBy("country_code")
     println("display allDF below")
-    allDf.show(50)
+    allDf.show(15)
 
-    //val exclude = new Regex("=")
-    allDf.write.mode("overwrite").option("header","true").csv("data/airportdata")
-    //.partitionBy("Region")
-    //tried:
-    //  string.replaceAll("=","") or replaceAll after "Region"
-    //  partitionBy("Region", "-")
-
-    //convert map to dataframe
-//    val allDf = all.toDF()
-//    println("displaying the finalDF df")
-//    allDf.show(25)
-
+    //****EXPORT #2******
+    //splits into files according to country... and shows country code, airport name
+    //allDf.write.mode("overwrite").option("header","true").csv("data/allAirports")
 
     //display abbreviated timezone with # of airports
 //    val numAirPerTz = finalDF.join(all, all("zone_name") === finalDF("Time Zone")).select(all("abbreviation"), finalDF("# of Airports")).distinct()
@@ -184,8 +188,9 @@ object Airports {
     //count of the join
     println("The total number of airports exported in allDf is : " + allCount)
 
-    //call at the end of the program
+    //call at the end of the main function
     //***********EXPORT TO TXT FILE************
+    //****EXPORT #3******
     val pw = new PrintWriter(new File("data/logs/reconciliation.txt"))
     pw.write("-----Reconciliation Strategy Details-----\nThe count of the initial 'airports-extended.csv' file is : "
       + extCount
